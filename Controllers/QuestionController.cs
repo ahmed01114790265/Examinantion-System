@@ -1,6 +1,9 @@
 ﻿using Application.Examinantion_System.DTOS.Question;
 using Application.Examinantion_System.DTOS.Student;
 using Application.Examinantion_System.Interfaces.IServices;
+using Application.Examinantion_System.PaginationModel;
+using AutoMapper;
+using Examinantion_System.ResponsViewModel;
 using Examinantion_System.ViewModels.Question;
 using Examinantion_System.ViewModels.Student;
 using Microsoft.AspNetCore.Http;
@@ -13,85 +16,90 @@ namespace Examinantion_System.Controllers
     public class QuestionController : ControllerBase
     {
         readonly IServiceQuestion serviceQuestion;
-        public QuestionController(IServiceQuestion serviceQuestion)
+        readonly IMapper mapper;
+        public QuestionController(IServiceQuestion serviceQuestion, IMapper mapper)
         {
             this.serviceQuestion = serviceQuestion;
+            this.mapper = mapper;
         }
 
         [HttpPost("AddQuestion")]
-        public async Task<IActionResult> AddQuestion([FromBody] ViewModelQuestionForAdding model)
+        public async Task<ResponsViewModel<ViewModelQuestionForAdding>> AddQuestion([FromBody] ViewModelQuestionForAdding model)
         {
-            var dto = new DTOQuestionForAdding()
-            {
-                Name = model.Name,
-                CreatedAt = DateTime.UtcNow
-            };
+            var dto = mapper.Map<DTOQuestionForAdding>(model);
             var result = await serviceQuestion.AddQuestionAsync(dto);
-            if (result.IsSuccess)
-                return Ok(result);
-            else
-                return BadRequest(result);
 
+            return new ResponsViewModel<ViewModelQuestionForAdding>
+            {
+                Data = result.IsSuccess ? model : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
         [HttpPut("UpdateQuestion")]
-        public async Task<IActionResult> UpdateQuestion([FromBody] ViewModelQuestionForUpdating model)
+        public async Task<ResponsViewModel<ViewModelQuestionForUpdating>> UpdateQuestion([FromBody] ViewModelQuestionForUpdating model)
         {
-            if (model.Id == Guid.Empty)
-                return BadRequest("Id is required");
-
-            var dto = new DTOQuestionForUpdating()
-            {
-                Name = model.Name,
-                UpdatedAt = DateTime.UtcNow
-            };
+            var dto = mapper.Map<DTOQuestionForUpdating>(model);
             var result = await serviceQuestion.UpdateQuestionAsync(dto);
 
-            if (result.IsSuccess)
-                return Ok(result);
-
-            else
-                return BadRequest(result);
+            return new ResponsViewModel<ViewModelQuestionForUpdating>
+            {
+                Data = result.IsSuccess ? model : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
         [HttpDelete("DeleteQuestion/{Id}")]
-        public async Task<IActionResult> DeleteQuestion(Guid Id)
+        public async Task<ResponsViewModel<Guid>> DeleteQuestion(Guid Id)
         {
             var result = await serviceQuestion.DeleteQuestionAsync(Id);
-
-            if (result.IsSuccess)
-                return Ok(result);
-            else
-                return BadRequest(result);
+            return new ResponsViewModel<Guid>
+            {
+                Data = result.IsSuccess ? Id : Guid.Empty,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
 
         [HttpGet("GetAllQuestion")]
 
-        public async Task<IActionResult> GetAllQuestion([FromQuery] int PageNumber = 1, [FromQuery] int PageSize = 5)
+        public async Task<ResponsViewModel<PaginationModel<ViewModelQuestion>>> GetAllQuestion([FromQuery] int PageNumber = 1, [FromQuery] int PageSize = 5)
         {
             var result = await serviceQuestion.GetAllQuestionAsync(PageNumber, PageSize);
 
-            if (result.IsSuccess)
-                return Ok(result);
+            var mappedData = mapper.Map<PaginationModel<ViewModelQuestion>>(result.Data);
 
-            else if (result.Errors != null && result.Errors.Any())
-                return BadRequest(result);
-
-
-
-            else
-                return NotFound(result);
+            return new ResponsViewModel<PaginationModel<ViewModelQuestion>>
+                {
+                Data = result.IsSuccess ? mappedData : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
 
 
         [HttpGet("GetQuestionById/{Id}")]
-        public async Task<IActionResult> GetQuestionById(Guid Id)
+        public async Task<ResponsViewModel<ViewModelQuestion>> GetQuestionById(Guid Id)
         {
             var result = await serviceQuestion.GetQuestionByIdAsync(Id);
-            if (result.IsSuccess)
-                return Ok(result);
-            else if (result.Errors != null && result.Errors.Any())
-                return BadRequest(result);
-            else
-                return NotFound(result);
+
+            var mappedData = mapper.Map<ViewModelQuestion>(result.Data);
+            return new ResponsViewModel<ViewModelQuestion>
+            {
+                Data = result.IsSuccess ? mappedData : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
 
 
         }

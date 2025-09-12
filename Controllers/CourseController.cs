@@ -1,6 +1,9 @@
 ﻿using Application.Examinantion_System.DTOS.Course;
 using Application.Examinantion_System.DTOS.Student;
 using Application.Examinantion_System.Interfaces.IServices;
+using Application.Examinantion_System.PaginationModel;
+using AutoMapper;
+using Examinantion_System.ResponsViewModel;
 using Examinantion_System.ViewModels.Course;
 using Examinantion_System.ViewModels.Student;
 using Microsoft.AspNetCore.Http;
@@ -13,85 +16,86 @@ namespace Examinantion_System.Controllers
     public class CourseController : ControllerBase
     {
         readonly IServiceCourse serviceCourse;
-        public CourseController(IServiceCourse serviceCourse)
+        readonly IMapper mapper;
+        public CourseController(IServiceCourse serviceCourse,IMapper mapper)
         {
             this.serviceCourse = serviceCourse;
+            this.mapper = mapper;
         }
 
         [HttpPost("AddCourse")]
-        public async Task<IActionResult> AddCourse([FromBody] ViewModelCourseForAdding model)
+        public async Task<ResponsViewModel<ViewModelCourseForAdding>> AddCourse([FromBody] ViewModelCourseForAdding model)
         {
-            var dto = new DTOCourseForAdding()
-            {
-                Name = model.Name,
-                CreatedAt = DateTime.UtcNow
-            };
+            var dto = mapper.Map<DTOCourseForAdding>(model);  
             var result = await serviceCourse.AddCourseAsync(dto);
-            if (result.IsSuccess)
-                return Ok(result);
-            else
-                return BadRequest(result);
-
+            return new ResponsViewModel<ViewModelCourseForAdding>
+            {
+                Data = result.IsSuccess ? model : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
         [HttpPut("UpdateCourse")]
-        public async Task<IActionResult> UpdateCourse([FromBody] ViewModelCourseForUpdating model)
+        public async Task<ResponsViewModel<ViewModelCourseForUpdating>> UpdateCourse([FromBody] ViewModelCourseForUpdating model)
         {
-            if (model.Id == Guid.Empty)
-                return BadRequest("Id is required");
-
-            var dto = new DTOCourseForUpdating()
-            {
-                Name = model.Name,
-                UpdatedAt = DateTime.UtcNow
-            };
+            var dto = mapper.Map<DTOCourseForUpdating>(model);
             var result = await serviceCourse.UpdateCourseAsync(dto);
-
-            if (result.IsSuccess)
-                return Ok(result);
-
-            else
-                return BadRequest(result);
+            return new ResponsViewModel<ViewModelCourseForUpdating>
+            {
+                Data = result.IsSuccess ? model : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
         [HttpDelete("DeleteCourse/{Id}")]
-        public async Task<IActionResult> DeleteCourse(Guid Id)
+        public async Task<ResponsViewModel<Guid>> DeleteCourse(Guid Id)
         {
             var result = await serviceCourse.DeleteCourseAsync(Id);
 
-            if (result.IsSuccess)
-                return Ok(result);
-            else
-                return BadRequest(result);
+            return new ResponsViewModel<Guid>
+            {
+                Data = result.IsSuccess ? Id : Guid.Empty,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
 
         [HttpGet("GetAllCourse")]
 
-        public async Task<IActionResult> GetAllCourse([FromQuery] int PageNumber = 1, [FromQuery] int PageSize = 5)
+        public async Task<ResponsViewModel<PaginationModel<ViewModelCourse>>> GetAllCourse([FromQuery] int PageNumber = 1, [FromQuery] int PageSize = 5)
         {
             var result = await serviceCourse.GetAllCourseAsync(PageNumber, PageSize);
-
-            if (result.IsSuccess)
-                return Ok(result);
-
-            else if (result.Errors != null && result.Errors.Any())
-                return BadRequest(result);
-
-
-
-            else
-                return NotFound(result);
+            var mappedData = mapper.Map<PaginationModel<ViewModelCourse>>(result.Data);
+            return new ResponsViewModel<PaginationModel<ViewModelCourse>>
+            {
+                Data = result.IsSuccess ? mappedData : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
 
 
         [HttpGet("GetCourseById/{Id}")]
-        public async Task<IActionResult> GetCourseById(Guid Id)
+        public async Task<ResponsViewModel<ViewModelCourse>> GetCourseById(Guid Id)
         {
             var result = await serviceCourse.GetCourseByIdAsync(Id);
-            if (result.IsSuccess)
-                return Ok(result);
-            else if (result.Errors != null && result.Errors.Any())
-                return BadRequest(result);
-            else
-                return NotFound(result);
+            var mappedData = mapper.Map<ViewModelCourse>(result.Data);
+            return new ResponsViewModel<ViewModelCourse>
+            {
+                Data = result.IsSuccess ? mappedData : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
 
 
         }

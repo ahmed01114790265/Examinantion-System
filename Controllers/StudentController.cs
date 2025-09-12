@@ -1,5 +1,9 @@
 ﻿using Application.Examinantion_System.DTOS.Student;
 using Application.Examinantion_System.Interfaces.IServices;
+using Application.Examinantion_System.PaginationModel;
+using AutoMapper;
+using Examinantion_System.ResponsViewModel;
+using Examinantion_System.ViewModels.choic;
 using Examinantion_System.ViewModels.Student;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,85 +15,101 @@ namespace Examinantion_System.Controllers
     public class StudentController : ControllerBase
     {
         readonly IServiceStudent serviceStudent;
-        public StudentController(IServiceStudent serviceStudent)
+        readonly IMapper mapper;
+        public StudentController(IServiceStudent serviceStudent,IMapper mapper)
         {
             this.serviceStudent = serviceStudent;
+            this.mapper = mapper;
         }
 
         [HttpPost("AddStudent")]
-        public async Task<IActionResult> AddStudent([FromBody] ViewmodelStudentForAdding model)
+        public async Task<ResponsViewModel<ViewmodelStudentForAdding>> AddStudent([FromBody] ViewmodelStudentForAdding model)
         {
-            var dto = new DTOStudentFor_Adding()
-            {
-                Name = model.Name,
-                CreatedAt = DateTime.UtcNow
-            };
+            var dto = mapper.Map<DTOStudentFor_Adding>(model); 
             var result = await serviceStudent.AddStudentAsync(dto);
-            if (result.IsSuccess)
-                return Ok(result);
-            else
-                return BadRequest(result);
+            return new ResponsViewModel<ViewmodelStudentForAdding>
+            {
+
+                Data = result.IsSuccess ? model : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
+
 
         }
         [HttpPut("UpdateStudent")]
-        public async Task<IActionResult> UpdateStudent([FromBody] ViewmodelStudentForUpdating model)
+        public async Task<ResponsViewModel<ViewmodelStudentForUpdating>> UpdateStudent([FromBody] ViewmodelStudentForUpdating model)
         {
-            if(model.Id==Guid.Empty)
-                return BadRequest("Id is required");
-
-            var dto = new DTOStudentFor_Updating()
-            {
-                Name = model.Name,
-                UpdatedAt = DateTime.UtcNow
-            };
+            var dto = mapper.Map<DTOStudentFor_Updating>(model);
             var result = await serviceStudent.UpdateStudentAsync(dto);
-
-            if (result.IsSuccess)
-                return Ok(result);
-
-            else
-                return BadRequest(result);
+            return new ResponsViewModel<ViewmodelStudentForUpdating>
+            {
+                Data = result.IsSuccess ? model : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
         [HttpDelete("DeleteStudent/{Id}")]
-        public async Task<IActionResult> DeleteStudent(Guid Id)
+        public async Task<ResponsViewModel<Guid>> DeleteStudent(Guid Id)
         {
             var result = await serviceStudent.DeleteStudentAsync(Id);
-
-            if (result.IsSuccess)
-                return Ok(result);
-            else
-                return BadRequest(result);
+            return new ResponsViewModel<Guid>
+            {
+                Data = result.IsSuccess ? Id : Guid.Empty,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
 
         [HttpGet("GetAllStudents")]
 
-        public async Task<IActionResult> GetAllStudents([FromQuery] int PageNumber = 1, [FromQuery] int PageSize = 5)
+        public async Task<ResponsViewModel<PaginationModel<ViewModelStudent>>> GetAllStudents([FromQuery] int PageNumber = 1, [FromQuery] int PageSize = 5)
         {
             var result = await serviceStudent.GetAllStudentsAsync(PageNumber, PageSize);
+            return new ResponsViewModel<PaginationModel<ViewModelStudent>>()
+            {
+                Data = result.IsSuccess ? new PaginationModel<ViewModelStudent>(
 
-            if (result.IsSuccess)
-                return Ok(result);
+                    result.Data.Data.Select(c => new ViewModelStudent
+                    {
+                        Name = c.Name
 
-            else if (result.Errors != null && result.Errors.Any())
-                return BadRequest(result);
+                    }),
+                    result.Data.PageNumber,
+                    result.Data.PageSize,
+                    result.Data.TotalCount
+                    ) : null,
 
-
-
-            else
-                return NotFound(result);
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
 
 
         [HttpGet("GetStudentById/{Id}")]
-        public async Task<IActionResult> GetStudentById(Guid Id)
+        public async Task<ResponsViewModel<ViewModelStudent>> GetStudentById(Guid Id)
         {
             var result = await serviceStudent.GetStudentByIdAsync(Id);
-            if (result.IsSuccess)
-                return Ok(result);
-            else if (result.Errors != null && result.Errors.Any())
-                return BadRequest(result);
-            else
-                return NotFound(result);
+            return new ResponsViewModel<ViewModelStudent>()
+            {
+                Data = result.IsSuccess ? new ViewModelStudent
+                {
+                    Name = result.Data.Name
+                } : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
+
 
 
         }

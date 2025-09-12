@@ -1,8 +1,10 @@
 ﻿using Application.Examinantion_System.DTOS.Choice;
 using Application.Examinantion_System.DTOS.Student;
 using Application.Examinantion_System.Interfaces.IServices;
+using Application.Examinantion_System.PaginationModel;
+using AutoMapper;
 using Examinantion_System.ResponsViewModel;
-using Examinantion_System.ViewModels.Choice;
+using Examinantion_System.ViewModels.choic;
 using Examinantion_System.ViewModels.Student;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,19 +16,17 @@ namespace Examinantion_System.Controllers
     public class ChoiceController : ControllerBase
     {
         readonly IServiceChoice serviceChoice;
-        public ChoiceController(IServiceChoice serviceChoicet)
+        readonly IMapper mapper;
+        public ChoiceController(IServiceChoice serviceChoicet , IMapper mapper)
         {
             this.serviceChoice = serviceChoice;
+            this.mapper = mapper;
         }
 
         [HttpPost("AddChoice")]
         public async Task<ResponsViewModel<ViewModelChoiceForAdding>> AddChoice([FromBody] ViewModelChoiceForAdding model)
         {
-            var dto = new DTOChoiceForAdding()
-            {
-                Name = model.Name,
-                CreatedAt = DateTime.UtcNow
-            };
+            var dto = mapper.Map<DTOChoiceForAdding>(model);
             var result = await serviceChoice.AddChoiceAsync(dto);
 
            
@@ -43,13 +43,9 @@ namespace Examinantion_System.Controllers
         [HttpPut("UpdateChoice")]
         public async Task<ResponsViewModel<ViewModelChoiceForUpdating>> UpdateChoice([FromBody] ViewModelChoiceForUpdating model)
         {
-       
-            var dto = new DTOChoiceForUpdating()
-            {
-                Name = model.Name,
-                UpdatedAt = DateTime.UtcNow
-            };
 
+            var dto = mapper.Map<DTOChoiceForUpdating>(model);
+            
             var result = await serviceChoice.UpdateChoiceAsync(dto);
 
             return new ResponsViewModel<ViewModelChoiceForUpdating>()
@@ -62,43 +58,66 @@ namespace Examinantion_System.Controllers
             };
         }
         [HttpDelete("DeleteChoice/{Id}")]
-        public async Task<IActionResult> DeleteChoice(Guid Id)
+        public async Task<ResponsViewModel<Guid>> DeleteChoice(Guid Id)
         {
             var result = await serviceChoice.DeleteChoiceAsync(Id);
-
-            if (result.IsSuccess)
-                return Ok(result);
-            else
-                return BadRequest(result);
+            return new ResponsViewModel<Guid>()
+            {
+                Data = result.IsSuccess ? Id : Guid.Empty,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
         }
 
         [HttpGet("GetAllChoices")]
 
-        public async Task<IActionResult> GetAllChoices([FromQuery] int PageNumber = 1, [FromQuery] int PageSize = 5)
+        public async Task<ResponsViewModel<PaginationModel< ViewModelChoice>>> GetAllChoices([FromQuery] int PageNumber = 1, [FromQuery] int PageSize = 5)
         {
             var result = await serviceChoice.GetAllChoiceAsync(PageNumber, PageSize);
+            return new ResponsViewModel<PaginationModel<ViewModelChoice>>()
+            {
+                Data = result.IsSuccess ? new PaginationModel<ViewModelChoice>(
+               
+                    result.Data.Data.Select(c => new ViewModelChoice
+                    {
+                            Name = c.Name,
+                            Text = c.Text,
 
-            if (result.IsSuccess)
-                return Ok(result);
+                    }),
+                    result.Data.PageNumber,
+                    result.Data.PageSize,
+                    result.Data.TotalCount
+                    ) : null,
 
-            else if (result.Errors != null && result.Errors.Any())
-                return BadRequest(result);
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
 
-            else
-                return NotFound(result);
+            };
+
+
         }
 
 
         [HttpGet("GetChoiceById/{Id}")]
-        public async Task<IActionResult> GetChoiceById(Guid Id)
+        public async Task<ResponsViewModel<ViewModelChoice>> GetChoiceById(Guid Id)
         {
             var result = await serviceChoice.GetChoiceByIdAsync(Id);
-            if (result.IsSuccess)
-                return Ok(result);
-            else if (result.Errors != null && result.Errors.Any())
-                return BadRequest(result);
-            else
-                return NotFound(result);
+            return new ResponsViewModel<ViewModelChoice>()
+            {
+                Data = result.IsSuccess ? new ViewModelChoice
+                {
+                    Name = result.Data.Name,
+                    Text = result.Data.Text,
+                } : null,
+                IsSuccess = result.IsSuccess,
+                Massage = result.Message,
+                Errors = result.Errors,
+                Status = result.Status,
+            };
 
 
         }
