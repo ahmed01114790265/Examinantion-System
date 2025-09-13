@@ -5,7 +5,6 @@ using AutoMapper;
 using Examinantion_System.ResponsViewModel;
 using Examinantion_System.ViewModels.choic;
 using Examinantion_System.ViewModels.Student;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Examinantion_System.Controllers
